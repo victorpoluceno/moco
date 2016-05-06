@@ -22,7 +22,7 @@ YOUTUBE_ANALYTICS_API_SERVICE_NAME = "youtubeAnalytics"
 YOUTUBE_ANALYTICS_API_VERSION = "v1"
 
 
-@app.route('/oauth2callback/')
+@application.route('/oauth2callback/')
 def oauth2callback():
     flow = client.flow_from_clientsecrets(
         CLIENT_SECRETS_FILE,
@@ -43,13 +43,13 @@ def oauth2callback():
     return flask.redirect(flask.request.args.get('r'))
 
 
-@app.route('/_admin/list')
+@application.route('/_admin/list')
 def admin_list():
     entries = [os.path.splitext(path)[0] for path in os.listdir('data/')]
     return flask.render_template('admin_list.html', entries=entries)
 
 
-@app.route('/_admin/detail/<entry_id>')
+@application.route('/_admin/detail/<entry_id>')
 def admin_detail(entry_id):
     storage = Storage("data/%s.json" % (entry_id))
     credentials = storage.get()
@@ -94,4 +94,4 @@ def admin_detail(entry_id):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    application.run(debug=True)
