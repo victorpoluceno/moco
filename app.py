@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timedelta
 
 import flask
-app = flask.Flask(__name__)
+application = flask.Flask(__name__)
 
 import httplib2
 
