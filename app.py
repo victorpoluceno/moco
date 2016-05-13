@@ -21,6 +21,8 @@ YOUTUBE_API_VERSION = "v3"
 YOUTUBE_ANALYTICS_API_SERVICE_NAME = "youtubeAnalytics"
 YOUTUBE_ANALYTICS_API_VERSION = "v1"
 
+DATA_DIR = '/www-data/'
+
 
 @application.route('/oauth2callback/')
 def oauth2callback():
@@ -28,7 +30,7 @@ def oauth2callback():
         CLIENT_SECRETS_FILE,
         scope=" ".join(YOUTUBE_SCOPES),
         redirect_uri=flask.url_for(
-            'oauth2callback', r=flask.request.args.get('r'),
+            'oauth2callback',
             _external=True))
 
     if 'code' not in flask.request.args:
@@ -38,20 +40,21 @@ def oauth2callback():
     auth_code = flask.request.args.get('code')
     credentials = flow.step2_exchange(auth_code)
 
-    storage = Storage('data/%s.json' % (credentials.client_id))
+    storage = Storage('%s%s.json' % (DATA_DIR, credentials.client_id))
     storage.put(credentials)
-    return flask.redirect(flask.request.args.get('r'))
+    # FIXME this is bad, need a way to have this passed by url
+    return flask.redirect('http://www.pudim.com.br')
 
 
 @application.route('/_admin/list')
 def admin_list():
-    entries = [os.path.splitext(path)[0] for path in os.listdir('data/')]
+    entries = [os.path.splitext(path)[0] for path in os.listdir(DATA_DIR)]
     return flask.render_template('admin_list.html', entries=entries)
 
 
 @application.route('/_admin/detail/<entry_id>')
 def admin_detail(entry_id):
-    storage = Storage("data/%s.json" % (entry_id))
+    storage = Storage("%s%s.json" % (DATA_DIR, entry_id))
     credentials = storage.get()
     if not credentials or credentials.invalid:
         return 'Not Found', 404
