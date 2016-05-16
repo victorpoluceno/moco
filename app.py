@@ -29,7 +29,8 @@ def oauth2callback():
             _external=True))
 
     if 'code' not in flask.request.args:
-        args = codecs.encode(json.dumps(flask.request.args), 'base64')
+        bytes_args = bytes(json.dumps(flask.request.args), encoding='utf-8')
+        args = codecs.encode(bytes_args, 'base64')
         auth_uri = flow.step1_get_authorize_url(state=args)
         return flask.redirect(auth_uri)
 
@@ -39,7 +40,8 @@ def oauth2callback():
 
     # Rebuild state
     state = flask.request.args.get('state')
-    args = json.loads(codecs.decode(state, 'base64'))
+    bytes_state = bytes(state, encoding='utf-8')
+    args = json.loads(codecs.decode(bytes_state, 'base64').decode('utf-8'))
 
     # Persist credentials for later use
     storage = Storage('%s%s.json' % (config['DATA_DIR'], args['email']))
