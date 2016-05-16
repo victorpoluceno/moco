@@ -1,3 +1,4 @@
+import codecs
 import json
 import os
 from datetime import datetime, timedelta
@@ -16,6 +17,8 @@ from oauth2client import client
 from oauth2client.file import Storage
 
 
+# TODO: use os.path.join everywhere
+
 @application.route('/oauth2callback/')
 def oauth2callback():
     flow = client.flow_from_clientsecrets(
@@ -26,7 +29,7 @@ def oauth2callback():
             _external=True))
 
     if 'code' not in flask.request.args:
-        args = json.dumps(flask.request.args).encode('base64')
+        args = codecs.encode(json.dumps(flask.request.args), 'base64')
         auth_uri = flow.step1_get_authorize_url(state=args)
         return flask.redirect(auth_uri)
 
@@ -36,7 +39,7 @@ def oauth2callback():
 
     # Rebuild state
     state = flask.request.args.get('state')
-    args = json.loads(state.decode('base64'))
+    args = json.loads(codecs.decode(state, 'base64'))
 
     # Persist credentials for later use
     storage = Storage('%s%s.json' % (config['DATA_DIR'], args['email']))
