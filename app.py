@@ -3,6 +3,9 @@ from datetime import datetime, timedelta
 
 import flask
 application = flask.Flask(__name__)
+application.config.from_object('default_settings')
+application.config.from_envvar('MOCO_SETTINGS', silent=True)
+config = application.config
 
 import httplib2
 
@@ -12,23 +15,11 @@ from oauth2client import client
 from oauth2client.file import Storage
 
 
-CLIENT_SECRETS_FILE = "client_secrets.json"
-
-YOUTUBE_SCOPES = ["https://www.googleapis.com/auth/youtube.readonly",
-                  "https://www.googleapis.com/auth/yt-analytics.readonly"]
-YOUTUBE_API_SERVICE_NAME = "youtube"
-YOUTUBE_API_VERSION = "v3"
-YOUTUBE_ANALYTICS_API_SERVICE_NAME = "youtubeAnalytics"
-YOUTUBE_ANALYTICS_API_VERSION = "v1"
-
-DATA_DIR = '/www-data/'
-
-
 @application.route('/oauth2callback/')
 def oauth2callback():
     flow = client.flow_from_clientsecrets(
-        CLIENT_SECRETS_FILE,
-        scope=" ".join(YOUTUBE_SCOPES),
+        config['CLIENT_SECRETS_FILE'],
+        scope=" ".join(config['YOUTUBE_SCOPES']),
         redirect_uri=flask.url_for(
             'oauth2callback',
             _external=True))
@@ -40,7 +31,8 @@ def oauth2callback():
     auth_code = flask.request.args.get('code')
     credentials = flow.step2_exchange(auth_code)
 
-    storage = Storage('%s%s.json' % (DATA_DIR, credentials.client_id))
+    storage = Storage('%s%s.json' % (
+        config['DATA_DIR'], credentials.client_id))
     storage.put(credentials)
     # FIXME this is bad, need a way to have this passed by url
     return flask.redirect('http://www.pudim.com.br')
@@ -48,24 +40,27 @@ def oauth2callback():
 
 @application.route('/_admin/list')
 def admin_list():
-    entries = [os.path.splitext(path)[0] for path in os.listdir(DATA_DIR)]
+    entries = [os.path.splitext(path)[0] for path in os.listdir(
+        config['DATA_DIR'])]
     return flask.render_template('admin_list.html', entries=entries)
 
 
 @application.route('/_admin/detail/<entry_id>')
 def admin_detail(entry_id):
-    storage = Storage("%s%s.json" % (DATA_DIR, entry_id))
+    storage = Storage("%s%s.json" % (config['DATA_DIR'], entry_id))
     credentials = storage.get()
     if not credentials or credentials.invalid:
         return 'Not Found', 404
 
     http_auth = credentials.authorize(httplib2.Http())
-    youtube_service = discovery.build(YOUTUBE_API_SERVICE_NAME,
-                                      YOUTUBE_API_VERSION, http=http_auth)
+    youtube_service = discovery.build(config['YOUTUBE_API_SERVICE_NAME'],
+                                      config['YOUTUBE_API_VERSION'],
+                                      http=http_auth)
 
-    youtube_analytics = discovery.build(YOUTUBE_ANALYTICS_API_SERVICE_NAME,
-                                        YOUTUBE_ANALYTICS_API_VERSION,
-                                        http=http_auth)
+    youtube_analytics = discovery.build(
+        config['YOUTUBE_ANALYTICS_API_SERVICE_NAME'],
+        config['YOUTUBE_ANALYTICS_API_VERSION'],
+        http=http_auth)
 
     channels_response = youtube_service.channels().list(
         mine=True,
