@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime, timedelta
 
@@ -25,17 +26,22 @@ def oauth2callback():
             _external=True))
 
     if 'code' not in flask.request.args:
-        auth_uri = flow.step1_get_authorize_url()
+        args = json.dumps(flask.request.args).encode('base64')
+        auth_uri = flow.step1_get_authorize_url(state=args)
         return flask.redirect(auth_uri)
 
+    # Get credentials from auth code
     auth_code = flask.request.args.get('code')
     credentials = flow.step2_exchange(auth_code)
 
-    storage = Storage('%s%s.json' % (
-        config['DATA_DIR'], credentials.client_id))
+    # Rebuild state
+    state = flask.request.args.get('state')
+    args = json.loads(state.decode('base64'))
+
+    # Persist credentials for later use
+    storage = Storage('%s%s.json' % (config['DATA_DIR'], args['email']))
     storage.put(credentials)
-    # FIXME this is bad, need a way to have this passed by url
-    return flask.redirect('http://www.pudim.com.br')
+    return flask.redirect(args['r'])
 
 
 @application.route('/_admin/list')
@@ -64,9 +70,10 @@ def admin_detail(entry_id):
 
     channels_response = youtube_service.channels().list(
         mine=True,
-        part="statistics"
+        part="id,statistics,snippet,contentDetails,topicDetails"
     ).execute()
 
+    print(channels_response)
     channel = channels_response["items"][0]
 
     now = datetime.now()

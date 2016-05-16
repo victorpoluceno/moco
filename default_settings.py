@@ -1,4 +1,4 @@
-DATA_DIR = './data'
+DATA_DIR = './data/'
 
 CLIENT_SECRETS_FILE = "./resources/client_secrets.json"
 
